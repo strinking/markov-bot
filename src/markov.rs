@@ -66,6 +66,9 @@ impl Markov {
 
         for _ in 0..length {
             let value = get_next_key(&self.map, &next_key(&sentence.to_string()));
+            if (value == "[STOP]") {
+                break;
+            }
             sentence = format!("{} {}", sentence, value);
         }
         sentence
@@ -112,7 +115,7 @@ fn get_next_key(map: &HashMap<String, HashMap<String, i32>>, key: &String) -> St
         }
 
         None => {
-            choice = format!("{}", *key);
+            choice = format!("{}", "[STOP]");
         }
     }
     choice
