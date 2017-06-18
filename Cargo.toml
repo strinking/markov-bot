@@ -1,0 +1,11 @@
+[package]
+name = "markov-bot"
+version = "0.1.0"
+authors = ["Ahmed Mohamed <ahmed02mohamed@outlook.com>"]
+
+[dependencies]
+rand = "0.3.15"
+
+[dependencies.serenity]
+git = "https://github.com/zeyla/serenity.git"
+features = ["framework"]
