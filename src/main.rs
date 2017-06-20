@@ -23,8 +23,8 @@ fn main() {
     }
 
     client.with_framework(|f| f
-        .configure(|c| c.prefix("!"))
-        .command("markov", |c| c.exec(commands::markov::generate))
+        .configure(|c| c.prefix("-"))
+        .command("generate", |c| c.exec(commands::markov::generate))
         .command("help", |c| c.exec(commands::main::help)));
 
     client.on_message(move |_ctx, msg| {
