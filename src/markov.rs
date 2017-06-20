@@ -66,7 +66,7 @@ impl Markov {
 
         for _ in 0..length {
             let value = get_next_key(&self.map, &next_key(&sentence.to_string()));
-            if (value == "[STOP]") {
+            if value == "[STOP]" {
                 break;
             }
             sentence = format!("{} {}", sentence, value);

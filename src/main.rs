@@ -1,41 +1,42 @@
 #[macro_use]
 extern crate serenity;
+extern crate typemap;
 
+mod commands;
 mod markov;
 
-use markov::Markov;
 use serenity::Client;
-
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-
+use markov::Markov;
+use typemap::Key;
 use std::env;
 
+impl Key for Markov {
+    type Value = Markov;
+}
+
 fn main() {
-    let mut discord_client = Client::new(&env::var("TOKEN").unwrap());
-    let mut markov = Arc::new(Mutex::new(Markov::new()));
+    let markov = Markov::new();
 
-    discord_client.on_message(move |_ctx, msg| {
-        let mut new_markov = markov.lock().unwrap();
-        
-        new_markov.parse(msg.content.as_str());
-        
-        if msg.content.to_lowercase().starts_with("!generate") {
-            let words = msg.content.split(" ").collect::<Vec<&str>>();
+    let mut client = Client::new(&env::var("TOKEN").unwrap()); {
+        let mut data = client.data.lock().unwrap();
+        data.insert::<Markov>(markov);
+    }
 
-            if words.len() > 1 {
-                if let Err(why) = msg.channel_id.say(&new_markov.generate(FromStr::from_str(words[1]).unwrap())) {
-                    println!("Error: {:?}", why);
-                }
-            } else {
-                if let Err(why) = msg.channel_id.say(&new_markov.generate(10)) {
-                    println!("Error: {:?}", why);
-                }
-            }
+    client.with_framework(|f| f
+        .configure(|c| c.prefix("!"))
+        .command("markov", |c| c.exec(commands::markov::generate))
+        .command("help", |c| c.exec(commands::main::help)));
+
+    client.on_message(move |_ctx, msg| {
+        if !msg.author.bot {
+            let mut data = _ctx.data.lock().unwrap();
+            let markov = data.get_mut::<Markov>().unwrap();
+
+            markov.parse(&msg.content);
         }
     });
 
-    if let Err(why) = discord_client.start() {
-        println!("Error: {:?}", why);
+    if let Err(why) = client.start() {
+        println!("Client error: {:?}", why);
     }
 }
