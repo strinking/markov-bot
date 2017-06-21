@@ -19,8 +19,12 @@ command!(generate(ctx, message, args) {
 
     match args.get(0) {
         Some(arg) => {
-            let length: i32 = arg.parse().unwrap();
-            let _ = message.channel_id.say(markov.generate(length).as_str());
+            if arg.parse::<i32>().is_err() {
+                println!("Wrong argument");
+            } else {
+                let length = arg.parse().unwrap();
+                let _ = message.channel_id.say(markov.generate(length).as_str());
+            }
         }
 
         None => {
@@ -62,10 +66,7 @@ command!(generate_user(ctx, message, args) {
         None => {
             let mut markov = markov.entry(String::from(author.as_str())).or_insert(Markov::new());
             let generated_string = markov.generate(100);
-            let msg = MessageBuilder::new()
-            .push(generated_string)
-            .build();
-            let _ = message.channel_id.say(&msg);
+            let _ = message.channel_id.say(&generated_string);
         }
     }
 });
