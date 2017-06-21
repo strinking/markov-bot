@@ -1,4 +1,17 @@
+extern crate typemap;
+
+use serenity::utils::MessageBuilder;
+use std::collections::HashMap;
+use serenity::model::UserId;
+use std::str::FromStr;
 use markov::Markov;
+use typemap::Key;
+
+pub struct UserMap;
+
+impl Key for UserMap {
+    type Value = HashMap<String, Markov>;
+}
 
 command!(generate(ctx, message, args) {
     let mut data = ctx.data.lock().unwrap();
@@ -7,13 +20,52 @@ command!(generate(ctx, message, args) {
     match args.get(0) {
         Some(arg) => {
             let length: i32 = arg.parse().unwrap();
-            println!("{}", length);
             let _ = message.channel_id.say(markov.generate(length).as_str());
-            println!("{}", markov.generate(1));
         }
 
         None => {
             let _ = message.channel_id.say(markov.generate(20).as_str());
+        }
+    }
+});
+
+command!(generate_user(ctx, message, args) {
+    let mut data =  ctx.data.lock().unwrap();
+    let mut markov = data.get_mut::<UserMap>().unwrap();
+    let author = &message.author.name;
+    match args.get(0) {
+        Some(arg) => {
+            if arg.starts_with("<") {
+                if arg.ends_with(">") {
+                    if !UserId::from_str(arg).unwrap().get().unwrap().bot {
+                        let mut user = UserId::from_str(arg).unwrap().get();
+                        let mut name = user.unwrap().name;
+                        let mut markov = markov.entry(name).or_insert_with(Markov::new);
+                        let generated_string = markov.generate(100);
+
+                        let msg = MessageBuilder::new()
+                            .push(UserId::from_str(arg).unwrap().get().unwrap().name)
+                            .push(": ")
+                            .push(generated_string)
+                            .build();
+
+                        let _ = message.channel_id.say(&msg);
+                    } else {
+                        let _ = message.channel_id.say("Why, just why?");
+                    }
+                }
+            } else {
+                let _ = message.channel_id.say("User does not exist or is not in this server");
+            }
+        }
+
+        None => {
+            let mut markov = markov.entry(String::from(author.as_str())).or_insert(Markov::new());
+            let generated_string = markov.generate(100);
+            let msg = MessageBuilder::new()
+            .push(generated_string)
+            .build();
+            let _ = message.channel_id.say(&msg);
         }
     }
 });

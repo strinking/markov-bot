@@ -5,6 +5,8 @@ extern crate typemap;
 mod commands;
 mod markov;
 
+use commands::markov::UserMap;
+use std::collections::HashMap;
 use serenity::Client;
 use markov::Markov;
 use typemap::Key;
@@ -16,27 +18,52 @@ impl Key for Markov {
 
 fn main() {
     let markov = Markov::new();
+    let user_map: HashMap<String, Markov> = HashMap::new();
 
     let mut client = Client::new(&env::var("TOKEN").unwrap()); {
         let mut data = client.data.lock().unwrap();
         data.insert::<Markov>(markov);
+        data.insert::<UserMap>(user_map);
     }
 
     client.with_framework(|f| f
-        .configure(|c| c.prefix("-"))
-        .command("generate", |c| c.exec(commands::markov::generate))
+        .configure(|c|
+            c.prefix("-")
+            .allow_whitespace(true)
+            .on_mention(true)
+            .ignore_bots(true)
+            .ignore_webhooks(true))
+        .command("genuser", |c| c.exec(commands::markov::generate_user))
+        .command("gen", |c| c.exec(commands::markov::generate))
         .command("help", |c| c.exec(commands::main::help)));
 
     client.on_message(move |_ctx, msg| {
-        if !msg.author.bot {
-            let mut data = _ctx.data.lock().unwrap();
-            let markov = data.get_mut::<Markov>().unwrap();
+        let author = msg.author;
 
-            markov.parse(&msg.content);
+        if !author.bot {
+            let mut data = _ctx.data.lock().unwrap();
+            match data.get_mut::<Markov>() {
+                Some(markov) => {
+                    markov.parse(&msg.content);
+                }
+                None => {
+                    panic!("Markov does not exist.");
+                }
+            }
+
+            match data.get_mut::<UserMap>() {
+                Some(user_map) => {
+                    let mut markov = user_map.entry(author.name).or_insert(Markov::new());
+                    markov.parse(&msg.content);
+                }
+                None => {
+                    println!("UserMap does not exist.");
+                }
+            }
         }
     });
 
     if let Err(why) = client.start() {
-        println!("Client error: {:?}", why);
+        println!("Error: {:?}", why);
     }
 }
