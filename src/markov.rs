@@ -6,6 +6,20 @@ use std::rc::Rc;
 
 const SEQUENCE_END: Rc<String> = Rc::new(String::from(""));
 
+fn roulette_wheel<'a, T>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
+    let sum = map.values().sum() as f32;
+    let mut rand = rng.next_f32();
+    for (key, val) in map.iter() {
+        let prob = val / sum;
+        if rand < prob {
+            return key;
+        }
+
+        rand -= prob;
+    }
+    panic!("No roulette selection made");
+}
+
 pub struct Markov {
     assocs: HashMap<Rc<String>, HashMap<Rc<String>, u32>>,
     start: HashMap<Rc<String>, u32>,
@@ -52,10 +66,11 @@ impl Markov {
         }
 
         for word in words {
-            let prev = next;
-            let next = word;
+            prev = next;
+            next = word;
             self.associate(prev, next);
         }
+        self.associate(next, SEQUENCE_END);
     }
 
     #[inline]
@@ -72,66 +87,40 @@ impl Markov {
         *count += 1;
     }
 
-
-    pub fn generate(&mut self, length: u32) -> String {
+    pub fn generate(&mut self, length: u32) -> Option<String> {
         let mut rng = thread_rng();
-        unimplemented!();
+
+        // Get starting word
+        let word: &String;
+        match roulette_wheel(&self.start, &rng) {
+            Some(x) => {
+                word = x;
+            },
+            None => {
+                // Markov chain is empty
+                return None;
+            }
+        }
+
+        let mut result = String::new();
+        for _ in 0..length {
+            match self.assocs.get(word) {
+                Some(probs) => {
+                    if !result.is_empty() {
+                        result.push(' ');
+                    }
+                    result.push_str(word);
+                    word = roulette_wheel(&probs, &rng)
+                        .expect("Probability map has no entries");
+                },
+                None => {
+                    // Word has no associations, finish
+                    break;
+                },
+            }
+        }
+
+        Some(result)
     }
 }
 
-     // TODO //
-     pub fn generate(&mut self, length: u32) -> String {
-         let mut random_number_generator = thread_rng();
-         let keys = self.map.keys().collect::<Vec<&String>>();
-         let key = random_number_generator
-             .choose(&keys)
-             .expect("no random value")
-             .to_string();
-         let mut sentence = key.clone();
- 
-         for _ in 0..length {
-             let value = get_next_key(&self.map, &next_key(&sentence.to_string()));
-             if value == "[STOP]" {
-                 break;
-             }
-             sentence = format!("{} {}", sentence, value);
-         }
-         sentence
-     }
- }
- 
- fn get_next_key(map: &HashMap<String, HashMap<String, i32>>, key: &str) -> String {
-     let mut choice: String = String::from("");
- 
-     match map.get(key) {
-         Some(value) => {
-             let mut sum_of_weights: i32 = 0;
-             for idx in value.values() {
-                 sum_of_weights += *idx;
-             }
- 
-             let mut random: i32 = thread_rng().gen_range(0, sum_of_weights);
-             let values = value.values().collect::<Vec<&i32>>();
-             let keys = value.keys().collect::<Vec<&String>>();
- 
-             for i in 0..value.len() {
-                 if random < *values[i] {
-                     choice = format!("{}", *keys[i]);
-                     break;
-                 } else {
-                     random -= *values[i];
-                 }
-             }
-         }
- 
-         None => {
-             choice = String::from("[STOP]");
-         }
-     }
-     choice
- }
- 
- fn next_key(key: &str) -> String {
-     let last_word = key.split(' ').last().expect("couldn't get last word");
-     String::from(last_word)
- }
