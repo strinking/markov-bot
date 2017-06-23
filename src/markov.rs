@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use typemap::Key;
 
-const SEQUENCE_END: String = String::from("");
-
 fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
     let sum = map.values().sum::<u32>() as f32;
     let mut rand = rng.next_f32();
@@ -38,6 +36,8 @@ impl Markov {
     }
 
     pub fn parse(&mut self, string: &str) {
+        const SEQUENCE_END: String = String::from("");
+
         // TODO: sanitize string of stuff like URLs
         let words = string.split(' ');
 
@@ -69,6 +69,7 @@ impl Markov {
         }
 
         for word in words {
+            // TODO strip punctuation and stuff
             prev = next;
             next = self.get_string(word);
             self.associate(prev, next);
@@ -115,6 +116,14 @@ impl Markov {
                     result.push_str(word);
                     word = roulette_wheel(&probs, &mut rng)
                         .expect("Probability map has no entries");
+
+                    if word.is_empty() {
+                        // End of sequence
+                        if rng.gen::<bool>() {
+                            result.push('.');
+                        }
+                        break;
+                    }
                 },
                 None => {
                     // Word has no associations, finish
