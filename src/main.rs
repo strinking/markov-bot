@@ -11,6 +11,7 @@ use serenity::Client;
 use markov::Markov;
 use typemap::Key;
 use std::env;
+use std::process;
 
 impl Key for Markov {
     type Value = Markov;
@@ -20,7 +21,18 @@ fn main() {
     let markov = Markov::new();
     let user_map: HashMap<String, Markov> = HashMap::new();
 
-    let mut client = Client::new(&env::var("TOKEN").unwrap()); {
+    const TOKEN_VAR: &str = "TOKEN";
+    let token = match env::var(TOKEN_VAR) {
+        Ok(token) => token,
+        Err(e) => {
+            println!("Unable to find '{}' in environment: {}",
+                     TOKEN_VAR, e);
+            process::exit(1);
+        }
+    };
+
+    let mut client = Client::new(&token);
+    {
         let mut data = client.data.lock().unwrap();
         data.insert::<Markov>(markov);
         data.insert::<UserMap>(user_map);
