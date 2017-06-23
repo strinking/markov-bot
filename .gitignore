@@ -1,6 +1,9 @@
 # Binaries
 target/
 
+# rustfmt
+*.rs.bk
+
 # Misc
 .*.swp
 *~

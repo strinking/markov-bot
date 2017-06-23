@@ -9,7 +9,10 @@ command!(help(_ctx, msg, _args) {
     .push("\"-gen\" ")
     .push("or, for user specific markov chains, say: ")
     .push("\"-genuser (mention)\" ")
-    .push("followed by the length you want the sentence generated to be, for more information on markov chains: ")
+    .push("followed by the length you want the generated")
+    .push("sentence to be")
+    .push("")
+    .push("For more information on Markov chains:")
     .push("<https://en.wikipedia.org/wiki/Markov_chain>")
     .build();
 
