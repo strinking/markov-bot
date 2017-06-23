@@ -1,17 +1,8 @@
-extern crate typemap;
-
+use markov::Markov;
+use serenity::model::UserId;
 use serenity::utils::MessageBuilder;
 use std::collections::HashMap;
-use serenity::model::UserId;
-use std::str::FromStr;
-use markov::Markov;
-use typemap::Key;
-
-pub struct UserMap;
-
-impl Key for UserMap {
-    type Value = HashMap<String, Markov>;
-}
+use super::usermap::UserMap;
 
 command!(generate(ctx, message, args) {
     let mut data = ctx.data.lock().unwrap();

@@ -1,6 +1,7 @@
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use std::hash::Hash;
+use typemap::Key;
 
 const SEQUENCE_END: String = String::from("");
 
@@ -22,6 +23,10 @@ fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> 
 pub struct Markov {
     assocs: HashMap<String, HashMap<String, u32>>,
     start: HashMap<String, u32>,
+}
+
+impl Key for Markov {
+    type Value = Markov;
 }
 
 impl Markov {

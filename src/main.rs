@@ -5,33 +5,20 @@ extern crate typemap;
 
 mod commands;
 mod markov;
+mod usermap;
 
-use commands::markov::UserMap;
-use std::collections::HashMap;
-use serenity::Client;
 use markov::Markov;
-use typemap::Key;
+use serenity::Client;
+use std::collections::HashMap;
 use std::env;
 use std::process;
-
-impl Key for Markov {
-    type Value = Markov;
-}
+use usermap::UserMap;
 
 fn main() {
     let markov = Markov::new();
-    let user_map: HashMap<String, Markov> = HashMap::new();
-
-    const TOKEN_VAR: &str = "TOKEN";
-    let token = match env::var(TOKEN_VAR) {
-        Ok(token) => token,
-        Err(e) => {
-            println!("Unable to find '{}' in environment: {}",
-                     TOKEN_VAR, e);
-            process::exit(1);
-        }
-    };
-
+    let user_map: HashMap<u64, Markov> = HashMap::new();
+    let token = env::var("TOKEN")
+        .expect("You must pass TOKEN into the bot's environment");
     let mut client = Client::new(&token);
     {
         let mut data = client.data.lock().unwrap();
@@ -70,7 +57,7 @@ fn main() {
         match data.get_mut::<UserMap>() {
             Some(user_map) => {
                 let mut markov = user_map
-                    .entry(author.name)
+                    .entry(author.id.0)
                     .or_insert(Markov::new());
                 markov.parse(&msg.content);
             }
