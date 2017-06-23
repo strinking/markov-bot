@@ -52,25 +52,29 @@ fn main() {
     client.on_message(move |_ctx, msg| {
         let author = msg.author;
 
-        if !author.bot {
-            let mut data = _ctx.data.lock().unwrap();
-            match data.get_mut::<Markov>() {
-                Some(markov) => {
-                    markov.parse(&msg.content);
-                }
-                None => {
-                    panic!("Markov does not exist.");
-                }
-            }
+        if author.bot {
+            return;
+        }
 
-            match data.get_mut::<UserMap>() {
-                Some(user_map) => {
-                    let mut markov = user_map.entry(author.name).or_insert(Markov::new());
-                    markov.parse(&msg.content);
-                }
-                None => {
-                    println!("UserMap does not exist.");
-                }
+        let mut data = _ctx.data.lock().unwrap();
+        match data.get_mut::<Markov>() {
+            Some(markov) => {
+                markov.parse(&msg.content);
+            }
+            None => {
+                panic!("Markov does not exist.");
+            }
+        }
+
+        match data.get_mut::<UserMap>() {
+            Some(user_map) => {
+                let mut markov = user_map
+                    .entry(author.name)
+                    .or_insert(Markov::new());
+                markov.parse(&msg.content);
+            }
+            None => {
+                println!("UserMap does not exist.");
             }
         }
     });
