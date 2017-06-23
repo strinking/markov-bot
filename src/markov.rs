@@ -1,28 +1,27 @@
-extern crate rand;
-
-use self::rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::hash::Hash;
 
-const SEQUENCE_END: Rc<String> = Rc::new(String::from(""));
+const SEQUENCE_END: String = String::from("");
 
-fn roulette_wheel<'a, T>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
-    let sum = map.values().sum() as f32;
+fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
+    let sum = map.values().sum::<u32>() as f32;
     let mut rand = rng.next_f32();
     for (key, val) in map.iter() {
-        let prob = val / sum;
+        let prob = (*val as f32) / sum;
         if rand < prob {
-            return key;
+            return Some(key);
         }
 
         rand -= prob;
     }
-    panic!("No roulette selection made");
+
+    None
 }
 
 pub struct Markov {
-    assocs: HashMap<Rc<String>, HashMap<Rc<String>, u32>>,
-    start: HashMap<Rc<String>, u32>,
+    assocs: HashMap<String, HashMap<String, u32>>,
+    start: HashMap<String, u32>,
 }
 
 impl Markov {
@@ -36,9 +35,9 @@ impl Markov {
     pub fn parse(&mut self, string: &str) {
         // TODO: sanitize string of stuff like URLs
         let words = string.split(' ');
-        let prev: Rc<String>;
 
         // Get first word
+        let prev: String;
         match words.next() {
             Some(s) => {
                 prev = self.get_string(s);
@@ -51,9 +50,8 @@ impl Markov {
             }
         }
 
-        let next: Rc<String>;
-
         // Get second word
+        let next: String;
         match words.next() {
             Some(s) => {
                 next = self.get_string(s);
@@ -67,21 +65,21 @@ impl Markov {
 
         for word in words {
             prev = next;
-            next = word;
+            next = self.get_string(word);
             self.associate(prev, next);
         }
         self.associate(next, SEQUENCE_END);
     }
 
     #[inline]
-    fn get_string(&mut self, string: &str) -> Rc<String> {
+    fn get_string(&mut self, string: &str) -> String {
         // TODO add pool
-        Rc::new(String::from(string))
+        String::from(string)
     }
 
     #[inline]
-    fn associate(&mut self, prev: Rc<String>, next: Rc<String>) {
-        let probs = self.map.entry(prev)
+    fn associate(&mut self, prev: String, next: String) {
+        let probs = self.assocs.entry(prev)
             .or_insert_with(HashMap::new);
         let count = probs.entry(next).or_insert(0);
         *count += 1;
@@ -92,7 +90,7 @@ impl Markov {
 
         // Get starting word
         let word: &String;
-        match roulette_wheel(&self.start, &rng) {
+        match roulette_wheel(&self.start, &mut rng) {
             Some(x) => {
                 word = x;
             },
@@ -110,7 +108,7 @@ impl Markov {
                         result.push(' ');
                     }
                     result.push_str(word);
-                    word = roulette_wheel(&probs, &rng)
+                    word = roulette_wheel(&probs, &mut rng)
                         .expect("Probability map has no entries");
                 },
                 None => {

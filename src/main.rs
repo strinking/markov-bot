@@ -1,3 +1,4 @@
+extern crate rand;
 #[macro_use]
 extern crate serenity;
 extern crate typemap;
