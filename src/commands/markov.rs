@@ -1,8 +1,18 @@
 use markov::Markov;
-use serenity::model::UserId;
+use serenity::model::{Message, UserId};
 use serenity::utils::MessageBuilder;
 use std::collections::HashMap;
-use super::usermap::UserMap;
+use ::usermap::UserMap;
+
+fn output_markov(markov: &Markov, message: &Message, length: u32) {
+    const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
+
+    let generated = match markov.generate(length) {
+        Some(x) => x.as_str(),
+        None => ERROR_MESSAGE,
+    };
+    let _ = message.channel_id.say(generated);
+}
 
 command!(generate(ctx, message, args) {
     let mut data = ctx.data.lock().unwrap();
@@ -10,16 +20,17 @@ command!(generate(ctx, message, args) {
 
     match args.get(0) {
         Some(arg) => {
-            if arg.parse::<i32>().is_err() {
-                println!("Wrong argument");
-            } else {
-                let length = arg.parse().unwrap();
-                let _ = message.channel_id.say(markov.generate(length).as_str());
+            match arg.parse::<u32>() {
+                Ok(len) => {
+                    output_markov(&markov, &message, len);
+                },
+                Err(_) => {
+                    // Ignore argument errors
+                }
             }
-        }
-
+        },
         None => {
-            let _ = message.channel_id.say(markov.generate(20).as_str());
+            output_markov(&markov, &message, 20);
         }
     }
 });
