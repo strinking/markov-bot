@@ -33,7 +33,7 @@ command!(generate(ctx, message, args) {
 
 fn get_uid(name: &str) -> Option<u64> {
     if name.starts_with("<") && name.ends_with(">") {
-        UserId::from_str(name)
+        name.parse::<UserId>()
             .ok()
             .map_or(None, |x| Some(x.0))
     } else {
