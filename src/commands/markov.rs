@@ -1,12 +1,13 @@
 use markov::Markov;
-use serenity::model::{Message, UserId};
+use serenity::model::{Message, User, UserId};
 use serenity::utils::MessageBuilder;
 use std::collections::HashMap;
 use ::usermap::UserMap;
 
-fn output_markov(markov: &Markov, message: &Message, length: u32) {
-    const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
+const DEFAULT_GENERATION_LENGTH: u32 = 20;
+const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
 
+fn output_markov(markov: &Markov, message: &Message, length: u32) {
     let generated = match markov.generate(length) {
         Some(x) => x.as_str(),
         None => ERROR_MESSAGE,
@@ -30,45 +31,36 @@ command!(generate(ctx, message, args) {
             }
         },
         None => {
-            output_markov(&markov, &message, 20);
+            output_markov(&markov, &message, DEFAULT_GENERATION_LENGTH);
         }
     }
 });
 
+fn get_uid(name: &str) -> Option<u64> {
+    if name.starts_with("<") && name.ends_with(">") {
+        UserId::from_str(name)
+            .ok()
+            .map_or(None, |x| Some(x.0))
+    } else {
+        None
+    }
+}
+
 command!(generate_user(ctx, message, args) {
     let mut data =  ctx.data.lock().unwrap();
-    let mut markov = data.get_mut::<UserMap>().unwrap();
-    let author = &message.author.name;
-    match args.get(0) {
-        Some(arg) => {
-            if arg.starts_with("<") {
-                if arg.ends_with(">") {
-                    if !UserId::from_str(arg).unwrap().get().unwrap().bot {
-                        let mut user = UserId::from_str(arg).unwrap().get();
-                        let mut name = user.unwrap().name;
-                        let mut markov = markov.entry(name).or_insert_with(Markov::new);
-                        let generated_string = markov.generate(100);
+    let mut usermap = data.get_mut::<UserMap>().unwrap();
 
-                        let msg = MessageBuilder::new()
-                            .push(UserId::from_str(arg).unwrap().get().unwrap().name)
-                            .push(": ")
-                            .push(generated_string)
-                            .build();
+    let length = args.get(1)
+        .map_or(DEFAULT_GENERATION_LENGTH,
+                |x| x.parse::<u32>()
+                    .ok()
+                    .unwrap_or(DEFAULT_GENERATION_LENGTH));
 
-                        let _ = message.channel_id.say(&msg);
-                    } else {
-                        let _ = message.channel_id.say("Why, just why?");
-                    }
-                }
-            } else {
-                let _ = message.channel_id.say("User does not exist or is not in this server");
-            }
-        }
-
-        None => {
-            let mut markov = markov.entry(String::from(author.as_str())).or_insert(Markov::new());
-            let generated_string = markov.generate(100);
-            let _ = message.channel_id.say(&generated_string);
+    if let Some(arg) = args.get(0) {
+        if let Some(markov) = get_uid(arg)
+                .map_or(None,
+                        |x| usermap.get(&x)) {
+            output_markov(&markov, &message, length);
         }
     }
 });

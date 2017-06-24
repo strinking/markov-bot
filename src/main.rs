@@ -37,14 +37,14 @@ fn main() {
         .command("gen", |c| c.exec(commands::markov::generate))
         .command("help", |c| c.exec(commands::main::help)));
 
-    client.on_message(move |_ctx, msg| {
+    client.on_message(move |ctx, msg| {
         let author = msg.author;
 
         if author.bot {
             return;
         }
 
-        let mut data = _ctx.data.lock().unwrap();
+        let mut data = ctx.data.lock().unwrap();
         match data.get_mut::<Markov>() {
             Some(markov) => {
                 markov.parse(&msg.content);
