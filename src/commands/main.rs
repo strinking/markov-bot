@@ -1,6 +1,9 @@
 use serenity::utils::MessageBuilder;
 
 command!(help(ctx, msg, args) {
+    let _ = ctx;
+    let _ = args;
+
     let message = MessageBuilder::new()
         .mention(msg.author.clone())
         .push("\n")

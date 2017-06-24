@@ -11,7 +11,6 @@ use markov::Markov;
 use serenity::Client;
 use std::collections::HashMap;
 use std::env;
-use std::process;
 use usermap::UserMap;
 
 fn main() {

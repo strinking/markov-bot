@@ -1,7 +1,5 @@
 use markov::Markov;
-use serenity::model::{Message, User, UserId};
-use serenity::utils::MessageBuilder;
-use std::collections::HashMap;
+use serenity::model::{Message, UserId};
 use usermap::UserMap;
 
 const DEFAULT_GENERATION_LENGTH: u32 = 20;
