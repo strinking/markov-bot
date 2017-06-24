@@ -11,19 +11,21 @@ impl<'a> StringPool<'a> {
     }
 
     pub fn get(&mut self, s: &str) -> StringShare {
-        match self.strings.get(s) {
+        let ss = StringShare::wrap(s);
+        match self.strings.get(&ss) {
             Some(x) => x.clone(),
             None => {
-                let x = StringShare::new(s);
-                self.strings.insert(x);
+                let x = StringShare::new(String::from(s));
+                self.strings.insert(x.clone());
 
-                x.clone()
+                x
             }
         }
     }
 
     pub fn del(&mut self, s: &str) -> bool {
-        self.strings.remove(s)
+        let ss = StringShare::wrap(s);
+        self.strings.remove(&ss)
     }
 
     pub fn clear(&mut self) {

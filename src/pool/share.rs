@@ -1,3 +1,4 @@
+use self::StringShareValue::{Ref, Str};
 use std::sync::Arc;
 
 #[derive(Clone, Hash)]
@@ -5,8 +6,6 @@ enum StringShareValue<'a> {
     Ref(Arc<String>),
     Str(&'a str),
 }
-
-use self::StringShareValue::{Ref, Str};
 
 #[derive(Clone, Hash)]
 pub struct StringShare<'a> {
@@ -23,9 +22,9 @@ impl<'a> StringShare<'a> {
     }
 
     pub fn as_str(&self) -> &str {
-        match self {
-            &Ref(arc) => &*arc,
-            &Str(s) => s,
+        match self.val {
+            Ref(arc) => &*arc,
+            Str(s) => s,
         }
     }
 }
