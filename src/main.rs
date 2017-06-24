@@ -5,7 +5,6 @@ extern crate typemap;
 
 mod commands;
 mod markov;
-mod pool;
 mod usermap;
 
 use markov::Markov;

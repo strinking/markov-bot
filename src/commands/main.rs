@@ -2,7 +2,7 @@ use serenity::utils::MessageBuilder;
 
 command!(help(ctx, msg, args) {
     let message = MessageBuilder::new()
-        .mention(msg.author)
+        .mention(msg.author.clone())
         .push("\n")
         .push("Commands:\n")
         .push("`-gen [length]` - ")

@@ -1,17 +1,15 @@
-use pool::StringPool;
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::Arc;
 use typemap::Key;
 
-fn roulette_wheel<T: Eq + Hash>(map: &HashMap<Arc<T>, u32>, rng: &mut Rng) -> Option<Arc<T>> {
+fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
     let sum = map.values().sum::<u32>() as f32;
     let mut rand = rng.next_f32();
     for (key, val) in map.iter() {
         let prob = (*val as f32) / sum;
         if rand < prob {
-            return Some(*key);
+            return Some(&key);
         }
 
         rand -= prob;
@@ -21,9 +19,8 @@ fn roulette_wheel<T: Eq + Hash>(map: &HashMap<Arc<T>, u32>, rng: &mut Rng) -> Op
 }
 
 pub struct Markov {
-    assocs: HashMap<Arc<String>, HashMap<Arc<String>, u32>>,
-    start: HashMap<Arc<String>, u32>,
-    pool: StringPool,
+    assocs: HashMap<String, HashMap<String, u32>>,
+    start: HashMap<String, u32>,
 }
 
 impl Key for Markov {
@@ -35,7 +32,6 @@ impl Markov {
         Markov {
             assocs: HashMap::new(),
             start: HashMap::new(),
-            pool: StringPool::new(),
         }
     }
 
@@ -44,10 +40,10 @@ impl Markov {
         let mut words = string.split(' ');
 
         // Get first word
-        let prev: Arc<String>;
+        let mut prev: String;
         match words.next() {
             Some(s) => {
-                prev = self.pool.get(s);
+                prev = String::from(s);
                 let count = self.start.entry(prev.clone()).or_insert(0);
                 *count += 1;
             }
@@ -58,29 +54,29 @@ impl Markov {
         }
 
         // Get second word
-        let next: Arc<String>;
+        let mut next: String;
         match words.next() {
             Some(s) => {
-                next = self.pool.get(s);
+                next = String::from(s);
                 self.associate(prev.clone(), next.clone());
             }
             None => {
-                self.associate(prev.clone(), self.pool.get(""));
+                self.associate(prev.clone(), String::from(""));
                 return;
             }
         }
 
-        let mut current = (prev, next);
         for word in words {
             // TODO strip punctuation and stuff
-            current = (next, self.pool.get(word));
-            self.associate(current.0, current.1);
+            prev = next;
+            next = String::from(word);
+            self.associate(prev.clone(), next.clone());
         }
-        self.associate(next, self.pool.get(""));
+        self.associate(next, String::from(""));
     }
 
     #[inline]
-    fn associate(&mut self, prev: Arc<String>, next: Arc<String>) {
+    fn associate(&mut self, prev: String, next: String) {
         let probs = self.assocs.entry(prev).or_insert_with(HashMap::new);
         let count = probs.entry(next).or_insert(0);
         *count += 1;
@@ -90,7 +86,7 @@ impl Markov {
         let mut rng = thread_rng();
 
         // Get starting word
-        let word: Arc<String>;
+        let mut word: &String;
         match roulette_wheel(&self.start, &mut rng) {
             Some(x) => {
                 word = x;
@@ -103,7 +99,7 @@ impl Markov {
 
         let mut result = String::new();
         for _ in 0..length {
-            match self.assocs.get(&word) {
+            match self.assocs.get(word) {
                 Some(probs) => {
                     if !result.is_empty() {
                         result.push(' ');
