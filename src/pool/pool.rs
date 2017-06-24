@@ -1,11 +1,11 @@
 use std::collections::HashSet;
-use std::sync::Arc;
+use share::StringShare;
 
 pub struct StringPool {
-    strings: HashSet<Arc<String>>,
+    strings: HashSet<StringShare>,
 }
 
-impl<'a> StringPool {
+impl StringPool {
     pub fn new() -> Self {
         StringPool { strings: HashSet::new() }
     }
