@@ -21,13 +21,8 @@ command!(generate(ctx, message, args) {
 
     match args.get(0) {
         Some(arg) => {
-            match arg.parse::<u32>() {
-                Ok(len) => {
-                    output_markov(&markov, &message, len);
-                },
-                Err(_) => {
-                    // Ignore argument errors
-                }
+            if let Ok(len) = arg.parse::<u32>() {
+                output_markov(&markov, &message, len);
             }
         },
         None => {
