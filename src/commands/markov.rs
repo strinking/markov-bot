@@ -5,8 +5,8 @@ use usermap::UserMap;
 const DEFAULT_GENERATION_LENGTH: u32 = 20;
 const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
 
-fn output_markov(markov: &Markov, message: &Message, length: u32) {
-    match markov.generate(length) {
+fn output_markov(markov: &Markov, message: &Message, length: u32, start: Option<&String>) {
+    match markov.generate(length, start) {
         Some(x) => {
             let _ = message.channel_id.say(x.as_str());
         }
@@ -23,11 +23,11 @@ command!(generate(ctx, message, args) {
     match args.get(0) {
         Some(arg) => {
             if let Ok(len) = arg.parse::<u32>() {
-                output_markov(&markov, &message, len);
+                output_markov(&markov, &message, len, None);
             }
         },
         None => {
-            output_markov(&markov, &message, DEFAULT_GENERATION_LENGTH);
+            output_markov(&markov, &message, DEFAULT_GENERATION_LENGTH, None);
         }
     }
 });
@@ -54,7 +54,7 @@ command!(generate_user(ctx, message, args) {
         if let Some(markov) = get_uid(arg)
                 .map_or(None,
                         |x| usermap.get(&x)) {
-            output_markov(&markov, &message, length);
+            output_markov(&markov, &message, length, None);
         }
     }
 });
