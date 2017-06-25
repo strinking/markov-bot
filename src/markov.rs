@@ -1,9 +1,10 @@
-use rand::{thread_rng, Rng};
 use std::collections::HashMap;
+use rand::{thread_rng, Rng};
 use std::hash::Hash;
 use typemap::Key;
+use regex::Regex;
 
-fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
+fn get_next_word<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> Option<&'a T> {
     let sum = map.values().sum::<u32>() as f32;
     let mut rand = rng.next_f32();
     for (key, val) in map.iter() {
@@ -19,8 +20,8 @@ fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> 
 }
 
 pub struct Markov {
-    assocs: HashMap<String, HashMap<String, u32>>,
-    start: HashMap<String, u32>,
+    word_map: HashMap<String, HashMap<String, u32>>,
+    starting_words: HashMap<String, u32>,
 }
 
 impl Key for Markov {
@@ -30,99 +31,108 @@ impl Key for Markov {
 impl Markov {
     pub fn new() -> Markov {
         Markov {
-            assocs: HashMap::new(),
-            start: HashMap::new(),
+            word_map: HashMap::new(),
+            starting_words: HashMap::new(),
         }
     }
 
     pub fn parse(&mut self, string: &str) {
-        // TODO: sanitize string of stuff like URLs
+        let url_regex = Regex::new(r"[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)").unwrap();
+        let string = url_regex.replace_all(string, "");
+        
         let mut words = string.split(' ');
-
-        // Get first word
-        let mut prev: String;
+        let mut previous_word: String;
+        
         match words.next() {
-            Some(s) => {
-                prev = String::from(s);
-                let count = self.start.entry(prev.clone()).or_insert(0);
+            Some(word) => {
+                previous_word = String::from(word);
+                let count = self.starting_words.entry(previous_word.clone()).or_insert(0);
                 *count += 1;
             }
+
             None => {
-                // Message is empty
+                println!("Empty message");
                 return;
             }
         }
 
-        // Get second word
-        let mut next: String;
+        let mut next_word: String;
         match words.next() {
-            Some(s) => {
-                next = String::from(s);
-                self.associate(prev.clone(), next.clone());
+            Some(word) => {
+                next_word = String::from(word);
+                self.associate(previous_word.clone(), next_word.clone());
             }
+
             None => {
-                self.associate(prev.clone(), String::from(""));
+                self.associate(previous_word.clone(), String::from(""));
                 return;
             }
         }
 
         for word in words {
-            // TODO strip punctuation and stuff
-            prev = next;
-            next = String::from(word);
-            self.associate(prev.clone(), next.clone());
+            previous_word = next_word.clone();
+            next_word = String::from(word);
+            self.associate(previous_word, next_word.clone());
         }
-        self.associate(next, String::from(""));
+        self.associate(next_word.clone(), String::from(""));
     }
 
     #[inline]
-    fn associate(&mut self, prev: String, next: String) {
-        let probs = self.assocs.entry(prev).or_insert_with(HashMap::new);
-        let count = probs.entry(next).or_insert(0);
+    fn associate(&mut self, previous_word: String, next_word: String) {
+        let probability = self.word_map.entry(previous_word).or_insert_with(HashMap::new);
+        let count = probability.entry(next_word).or_insert(0);
         *count += 1;
     }
 
-    pub fn generate(&self, length: u32) -> Option<String> {
+    pub fn generate(&self, length: u32, starting_word: Option<&String>) -> Option<String> {
         let mut rng = thread_rng();
 
-        // Get starting word
         let mut word: &String;
-        match roulette_wheel(&self.start, &mut rng) {
-            Some(x) => {
-                word = x;
+
+        match starting_word {
+            Some(start) => {
+                word = start;
             }
+
             None => {
-                // Markov chain is empty
-                return None;
+                match get_next_word(&self.starting_words, &mut rng) {
+                    Some(start) => {
+                        word = start;
+                    }
+
+                    None => {
+                        return None;
+                    }
+                }
             }
         }
 
         let mut result = String::new();
+
         for _ in 0..length {
-            match self.assocs.get(word) {
-                Some(probs) => {
+            match self.word_map.get(word) {
+                Some(probability) => {
                     if !result.is_empty() {
                         result.push(' ');
                     }
                     result.push_str(&*word);
+
                     word =
-                        roulette_wheel(&probs, &mut rng).expect("Probability map has no entries");
+                        get_next_word(&probability, &mut rng).expect("Probability map is empty");
 
                     if word.is_empty() {
-                        // End of sequence
                         if rng.gen::<bool>() {
                             result.push('.');
                         }
                         break;
                     }
                 }
+
                 None => {
-                    // Word has no associations, finish
                     break;
                 }
             }
         }
-
         Some(result)
     }
 }
