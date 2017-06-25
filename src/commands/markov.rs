@@ -1,6 +1,7 @@
 use markov::Markov;
-use serenity::model::{Message, UserId};
 use usermap::UserMap;
+use serenity::utils::MessageBuilder;
+use serenity::model::{Message, UserId};
 
 const DEFAULT_GENERATION_LENGTH: u32 = 20;
 const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
@@ -8,7 +9,10 @@ const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
 fn output_markov(markov: &Markov, message: &Message, length: u32, start: Option<&String>) {
     match markov.generate(length, start) {
         Some(x) => {
-            let _ = message.channel_id.say(x.as_str());
+            let msg = MessageBuilder::new()
+                .push(x)
+                .build();
+            let _ = message.channel_id.say(msg.as_str());
         }
         None => {
             let _ = message.channel_id.say(ERROR_MESSAGE);
@@ -19,15 +23,26 @@ fn output_markov(markov: &Markov, message: &Message, length: u32, start: Option<
 command!(generate(ctx, message, args) {
     let mut data = ctx.data.lock().unwrap();
     let markov = data.get_mut::<Markov>().unwrap();
-
+    let mut length: u32 = 0;
+    
     match args.get(0) {
-        Some(arg) => {
-            if let Ok(len) = arg.parse::<u32>() {
-                output_markov(&markov, &message, len, None);
+        Some(a) => {
+            if let Ok(len) = a.parse::<u32>() {
+                length += len;
             }
         },
         None => {
-            output_markov(&markov, &message, DEFAULT_GENERATION_LENGTH, None);
+            length += DEFAULT_GENERATION_LENGTH;
+        }
+    }
+
+    match args.get(1) {
+        Some(arg) => {
+            output_markov(&markov, &message, length, Some(arg));
+        }
+
+        None => {
+            output_markov(&markov, &message, length, None);
         }
     }
 });
