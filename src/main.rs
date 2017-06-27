@@ -4,6 +4,9 @@ extern crate regex;
 extern crate serenity;
 extern crate typemap;
 
+#[macro_use]
+extern crate lazy_static;
+
 mod commands;
 mod markov;
 mod usermap;
@@ -27,12 +30,13 @@ fn main() {
 
     client.with_framework(|f| {
         f.configure(|c| {
-            c.prefix("-")
-                .allow_whitespace(true)
-                .on_mention(true)
-                .ignore_bots(true)
-                .ignore_webhooks(true)
-        }).command("genuser", |c| c.exec(commands::markov::generate_user))
+                           c.prefix("%")
+                               .allow_whitespace(true)
+                               .on_mention(true)
+                               .ignore_bots(true)
+                               .ignore_webhooks(true)
+                       })
+            .command("genuser", |c| c.exec(commands::markov::generate_user))
             .command("gen", |c| c.exec(commands::markov::generate))
             .command("help", |c| c.exec(commands::main::help))
     });
