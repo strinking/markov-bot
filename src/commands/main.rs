@@ -11,6 +11,7 @@ command!(help(ctx, message, args) {
         .push("`%gen [length] [word]` - ")
         .push("Generates a message, with an optional length and/or by word\n")
         .push("`%genuser \@mention [length]` - ")
+        .push("`%genuser @mention [length]` - ")
         .push("Generates based on a particular user\n")
         .push("For more information on Markov chains: ")
         .push("<https://en.wikipedia.org/wiki/Markov_chain>\n")
