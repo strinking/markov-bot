@@ -1,4 +1,9 @@
 use serenity::utils::MessageBuilder;
+use serenity::model::OnlineStatus;
+
+lazy_static! {
+    static ref ALLOWED_USER_IDS: Vec<u64> = vec![76043245804589056, 98633956773093376];
+}
 
 command!(help(ctx, message, args) {
     let _ = ctx;
@@ -10,7 +15,6 @@ command!(help(ctx, message, args) {
         .push("Commands:\n")
         .push("`%gen [length] [word]` - ")
         .push("Generates a message, with an optional length and/or by word\n")
-        .push("`%genuser \@mention [length]` - ")
         .push("`%genuser @mention [length]` - ")
         .push("Generates based on a particular user\n")
         .push("For more information on Markov chains: ")
@@ -58,6 +62,13 @@ command!(status(ctx, message, args) {
                 ctx.set_presence(None, OnlineStatus::Online, false);
             }
         }
+    }
+});
+
+command!(game(ctx, message, args) {
+    if ALLOWED_USER_IDS.contains(&message.author.id.0) {
+        let arg = args.join(" ");
+        ctx.set_game_name(arg.as_str());
     }
 });
 
