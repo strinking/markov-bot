@@ -8,6 +8,4 @@ target/
 .*.swp
 *~
 *.bak
-
-# Diesel envn
-.env
+\.env
