@@ -40,6 +40,8 @@ fn main() {
             .command("gen", |c| c.exec(commands::markov::generate))
             .command("help", |c| c.exec(commands::main::help))
             .command("status", |c| c.exec(commands::main::status))
+            .command("game", |c| c.exec(commands::main::game))
+            .command("name", |c| c.exec(commands::main::name))
     });
 
     client.on_message(|ctx, msg| {

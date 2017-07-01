@@ -72,3 +72,9 @@ command!(game(ctx, message, args) {
     }
 });
 
+command!(name(ctx, message, args) {
+    if ALLOWED_USER_IDS.contains(&message.author.id.0) {
+        let arg = args.join(" ");
+        let _ = ctx.edit_profile(|p| p.username(arg.as_str()));
+    }
+});
