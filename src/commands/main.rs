@@ -19,3 +19,45 @@ command!(help(ctx, message, args) {
         .build();
     let _ = message.channel_id.say(&msg);
 });
+
+command!(status(ctx, message, args) {
+    if ALLOWED_USER_IDS.contains(&message.author.id.0) {  
+        match args.get(0) {
+            Some(arg) => {
+                match arg.to_lowercase().as_str() {
+                    "online" => {
+                        ctx.set_presence(None, OnlineStatus::Online, false);
+                    }
+                    
+                    "invisible" => {
+                        ctx.set_presence(None, OnlineStatus::Invisible, false);
+                    }
+                    
+                    "invis" => {
+                        ctx.set_presence(None, OnlineStatus::Invisible, false);
+                    }
+                    
+                    "dnd" => {
+                        ctx.set_presence(None, OnlineStatus::DoNotDisturb, false);
+                    }
+                    
+                    "idle" => {
+                        ctx.set_presence(None, OnlineStatus::Idle, false);
+                    }
+                    
+                    "reset" => {
+                        ctx.set_presence(None, OnlineStatus::Online, false);
+                    }
+                    
+                    _ => {
+                        ctx.set_presence(None, OnlineStatus::Online, false);
+                    }
+                }
+            }
+            None => {
+                ctx.set_presence(None, OnlineStatus::Online, false);
+            }
+        }
+    }
+});
+
