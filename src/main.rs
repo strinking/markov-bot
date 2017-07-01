@@ -11,11 +11,11 @@ mod commands;
 mod markov;
 mod usermap;
 
+use std::env;
+use usermap::UserMap;
 use markov::Markov;
 use serenity::Client;
 use std::collections::HashMap;
-use std::env;
-use usermap::UserMap;
 
 fn main() {
     let markov = Markov::new();
@@ -39,9 +39,11 @@ fn main() {
             .command("genuser", |c| c.exec(commands::markov::generate_user))
             .command("gen", |c| c.exec(commands::markov::generate))
             .command("help", |c| c.exec(commands::main::help))
+            .command("status", |c| c.exec(commands::main::status))
     });
 
-    client.on_message(move |ctx, msg| {
+    client.on_message(|ctx, msg| {
+        let stripped = msg.content_safe();
         let author = msg.author;
 
         if author.bot {
@@ -51,7 +53,7 @@ fn main() {
         let mut data = ctx.data.lock().unwrap();
         match data.get_mut::<Markov>() {
             Some(markov) => {
-                markov.parse(&msg.content);
+                markov.parse(&stripped);
             }
             None => {
                 panic!("Markov does not exist.");
