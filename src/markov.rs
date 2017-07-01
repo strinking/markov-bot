@@ -26,7 +26,7 @@ fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> 
 
 pub struct Markov {
     assoc_map: HashMap<String, HashMap<String, u32>>,
-    starting_words: HashMap<String, u32>
+    starting_words: HashMap<String, u32>,
 }
 
 impl Key for Markov {
@@ -87,9 +87,50 @@ impl Markov {
         *count += 1;
     }
 
-    pub fn generate(&self, length: u32, starting_word: Option<&String>) -> Option<String> {
+    pub fn generate(&self, length: u32) -> Option<String> {
         let mut rng = thread_rng();
+        let mut word: &String;
 
+        match roulette_wheel(&self.starting_words, &mut rng) {
+            Some(start) => {
+                word = start;
+            }
+
+            None => {
+                return None;
+            }
+        }
+
+        let mut result = String::new();
+
+        for _ in 0..length {
+            match self.assoc_map.get(word) {
+                Some(probs) => {
+                    if !result.is_empty() {
+                        result.push(' ');
+                    }
+                    result.push_str(&*word);
+
+                    word = roulette_wheel(&probs, &mut rng).expect("Probability map is empty");
+
+                    if word.is_empty() {
+                        break;
+                    }
+                }
+
+                None => {
+                    break;
+                }
+            }
+        }
+        Some(result)
+    }
+
+    pub fn generate_from_word(&self,
+                              length: u32,
+                              starting_word: Option<&String>)
+                              -> Option<String> {
+        let mut rng = thread_rng();
         let mut word: &String;
 
         match starting_word {
