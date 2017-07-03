@@ -1,8 +1,14 @@
 use std::collections::HashMap;
+use diesel::pg::PgConnection;
 use rand::{thread_rng, Rng};
 use std::hash::Hash;
 use typemap::Key;
 use regex::Regex;
+use diesel::SelectDsl;
+use diesel::LoadDsl;
+use schema::message::dsl::*;
+use diesel::ExpressionMethods;
+use diesel::FilterDsl;
 
 lazy_static! {
     static ref URL_REGEX: Regex = Regex::new(r"[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)").unwrap();
@@ -22,6 +28,32 @@ fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> 
     }
 
     None
+}
+
+pub fn parse_messages(connection: &PgConnection, markov: &mut Markov) {
+    let results = message.select(content).load::<String>(connection);
+
+    for vector in results {
+        for message_content in vector {
+            markov.parse(message_content.as_str());
+        }
+    }
+}
+
+pub fn parse_user_messages(connection: &PgConnection, mut markov: &mut HashMap<u64, Markov>) {
+    let results = message.select(author_id).load::<i64>(connection);
+    
+    for vector in results {
+        for user_id in vector {
+            let markov = markov.entry(user_id as u64).or_insert(Markov::new());
+            let msg_content = message.select(content).filter(id.eq(user_id)).load::<String>(connection);
+            for vec in msg_content {
+                for msg in vec {
+                    markov.parse(msg.as_str());
+                }
+            }
+        }
+    }
 }
 
 pub struct Markov {
