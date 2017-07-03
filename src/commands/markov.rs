@@ -1,35 +1,61 @@
 use markov::Markov;
-use serenity::model::{Message, UserId};
 use usermap::UserMap;
+use serenity::model::{Message, UserId};
 
 const DEFAULT_GENERATION_LENGTH: u32 = 20;
 const ERROR_MESSAGE: &str = "(Haven't collected enough data yet)";
 
-fn output_markov(markov: &Markov, message: &Message, length: u32) {
-    match markov.generate(length) {
-        Some(x) => {
-            let _ = message.channel_id.say(x.as_str());
+fn output_markov(markov: &Markov, message: &Message, length: u32, start: Option<&String>) {
+    match start {
+        Some(_) => {
+            match markov.generate_from_word(length, start) {
+                Some(x) => {
+                    let _ = message.channel_id.say(x.as_str());
+                }
+                None => {
+                    let _ = message.channel_id.say(ERROR_MESSAGE);
+                }
+            }
         }
+
         None => {
-            let _ = message.channel_id.say(ERROR_MESSAGE);
+            match markov.generate(length) {
+                Some(x) => {
+                    let _ = message.channel_id.say(x.as_str());
+                }
+
+                None => {
+                    let _ = message.channel_id.say(ERROR_MESSAGE);
+                }
+            }
         }
     }
 }
 
 command!(generate(ctx, message, args) {
     let mut data = ctx.data.lock().unwrap();
-    let markov = data.get_mut::<Markov>().unwrap();
-
-    match args.get(0) {
-        Some(arg) => {
-            if let Ok(len) = arg.parse::<u32>() {
-                output_markov(&markov, &message, len);
+    let mut markov = data.get_mut::<Markov>().unwrap();
+    let mut length: u32 = 0;
+        match args.get(0) {
+            Some(a) => {
+                if let Ok(len) = a.parse::<u32>() {
+                    length += len;
+                }
+            },
+            None => {
+                length += DEFAULT_GENERATION_LENGTH;
             }
-        },
-        None => {
-            output_markov(&markov, &message, DEFAULT_GENERATION_LENGTH);
         }
-    }
+        
+        match args.get(1) {
+            Some(arg) => {
+                output_markov(&markov, &message, length, Some(arg));
+            }
+            
+            None => {
+                output_markov(&markov, &message, length, None);
+            }
+        }
 });
 
 fn get_uid(name: &str) -> Option<u64> {
@@ -54,7 +80,7 @@ command!(generate_user(ctx, message, args) {
         if let Some(markov) = get_uid(arg)
                 .map_or(None,
                         |x| usermap.get(&x)) {
-            output_markov(&markov, &message, length);
+            output_markov(&markov, &message, length, None);
         }
     }
 });
