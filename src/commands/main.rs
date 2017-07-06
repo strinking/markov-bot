@@ -41,7 +41,7 @@ command!(game(ctx, message, args) {
 command!(name(ctx, message, args) {
     if ALLOWED_USER_IDS.contains(&message.author.id.0) {
         let arg = args.join(" ");
-        let _ = ctx.edit_profile(|p| p.username(arg.as_str())).expect("could not set name");
+        let _ = ctx.edit_profile(|p| p.username(arg.as_str()));
     }
 });
 
@@ -49,6 +49,10 @@ command!(nick(ctx, message, args) {
     let _ = ctx;
     if ALLOWED_USER_IDS.contains(&message.author.id.0) {
         let arg = args.join(" ");
-        let _ = message.guild_id().unwrap().edit_nickname(Some(arg.as_str()));
+        if message.is_private() {
+            let _ = ctx.edit_profile(|p| p.username(arg.as_str()));
+        } else {
+            let _ = message.guild_id().unwrap().edit_nickname(Some(arg.as_str()));
+        }
     }
 });

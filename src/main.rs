@@ -30,14 +30,16 @@ fn main() {
     let markov = Markov::new();
     let user_map: HashMap<u64, Markov> = HashMap::new();
     let token = env::var("TOKEN").expect("You must pass TOKEN into the bot's environment");
-    let connection = Arc::new(Mutex::new(database::connect()));                       
+    let connection = Arc::new(Mutex::new(database::connect()));
     let mut client = Client::new(&token);
     {
         let mut data = client.data.lock().unwrap();
         data.insert::<Markov>(markov);
-        data.insert::<UserMap>(user_map);       
-        markov::parse_messages(&connection.lock().unwrap(), data.get_mut::<Markov>().unwrap());
-        markov::parse_user_messages(&connection.lock().unwrap(), data.get_mut::<UserMap>().unwrap()); 
+        data.insert::<UserMap>(user_map);
+        markov::parse_messages(&connection.lock().unwrap(),
+                               data.get_mut::<Markov>().unwrap());
+        markov::parse_user_messages(&connection.lock().unwrap(),
+                                    data.get_mut::<UserMap>().unwrap());
     }
 
     client.with_framework(|f| {
@@ -50,6 +52,9 @@ fn main() {
                        })
             .command("genuser", |c| c.exec(commands::markov::generate_user))
             .command("gen", |c| c.exec(commands::markov::generate))
+            .command("genword", |c| c.exec(commands::markov::generate_from_word))
+            .command("genuserword",
+                     |c| c.exec(commands::markov::generate_word_from_user))
             .command("help", |c| c.exec(commands::main::help))
             .command("status", |c| c.exec(commands::main::status))
             .command("game", |c| c.exec(commands::main::game))
@@ -61,17 +66,22 @@ fn main() {
         let stripped = &msg.content_safe();
         let author = &msg.author;
 
-        let message_id= msg.id.0 as i64;
+        if author.bot {
+            return;
+        }
+
+        let message_id = msg.id.0 as i64;
         let message_content: String = String::from(msg.content_safe());
         let guild_id = msg.guild_id().unwrap().0 as i64;
         let author_id = author.id.0 as i64;
         let channel_id = msg.channel_id.0 as i64;
-        
-        database::insert_message(&connection.lock().unwrap(), message_id, message_content, guild_id, author_id, channel_id);
 
-        if author.bot {
-            return;
-        }
+        database::insert_message(&connection.lock().unwrap(),
+                                 message_id,
+                                 message_content,
+                                 guild_id,
+                                 author_id,
+                                 channel_id);
 
         let mut data = ctx.data.lock().unwrap();
         match data.get_mut::<Markov>() {
@@ -93,7 +103,7 @@ fn main() {
             }
         }
     });
- 
+
     if let Err(why) = client.start() {
         println!("Error: {:?}", why);
     }
