@@ -42,12 +42,15 @@ pub fn parse_messages(connection: &PgConnection, markov: &mut Markov) {
 
 pub fn parse_user_messages(connection: &PgConnection, mut markov: &mut HashMap<u64, Markov>) {
     let results = message.select(author_id).load::<i64>(connection);
-    
+
     for vector in results {
         for user_id in vector {
             let markov = markov.entry(user_id as u64).or_insert(Markov::new());
-            let msg_content = message.select(content).filter(id.eq(user_id)).load::<String>(connection);
-            for vec in msg_content {
+            let messages = message
+                .select(content)
+                .filter(author_id.eq(user_id))
+                .load::<String>(connection);
+            for vec in messages {
                 for msg in vec {
                     markov.parse(msg.as_str());
                 }
@@ -158,40 +161,18 @@ impl Markov {
         Some(result)
     }
 
-    pub fn generate_from_word(&self,
-                              length: u32,
-                              starting_word: Option<&String>)
-                              -> Option<String> {
+    pub fn generate_from_word(&self, length: u32, starting_word: &str) -> Option<String> {
         let mut rng = thread_rng();
-        let mut word: &String;
-
-        match starting_word {
-            Some(start) => {
-                word = start;
-            }
-
-            None => {
-                match roulette_wheel(&self.starting_words, &mut rng) {
-                    Some(start) => {
-                        word = start;
-                    }
-
-                    None => {
-                        return None;
-                    }
-                }
-            }
-        }
-
         let mut result = String::new();
+        let mut word: &str;
 
         for _ in 0..length {
-            match self.assoc_map.get(word) {
+            match self.assoc_map.get(starting_word) {
                 Some(probs) => {
                     if !result.is_empty() {
                         result.push(' ');
                     }
-                    result.push_str(&*word);
+                    result.push_str(&*starting_word);
 
                     word = roulette_wheel(&probs, &mut rng).expect("Probability map is empty");
 
