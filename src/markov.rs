@@ -164,15 +164,15 @@ impl Markov {
     pub fn generate_from_word(&self, length: u32, starting_word: &str) -> Option<String> {
         let mut rng = thread_rng();
         let mut result = String::new();
-        let mut word: &str;
+        let mut word: &str = starting_word;
 
         for _ in 0..length {
-            match self.assoc_map.get(starting_word) {
+            match self.assoc_map.get(word) {
                 Some(probs) => {
                     if !result.is_empty() {
                         result.push(' ');
                     }
-                    result.push_str(&*starting_word);
+                    result.push_str(&*word);
 
                     word = roulette_wheel(&probs, &mut rng).expect("Probability map is empty");
 
