@@ -1,5 +1,6 @@
 use serenity::utils::MessageBuilder;
 use serenity::model::OnlineStatus;
+use status::Status;
 
 lazy_static! {
     static ref ALLOWED_USER_IDS: Vec<u64> = vec![76043245804589056, 98633956773093376];
@@ -25,43 +26,8 @@ command!(help(ctx, message, args) {
 });
 
 command!(status(ctx, message, args) {
-    if ALLOWED_USER_IDS.contains(&message.author.id.0) {  
-        match args.get(0) {
-            Some(arg) => {
-                match arg.to_lowercase().as_str() {
-                    "online" => {
-                        ctx.set_presence(None, OnlineStatus::Online, false);
-                    }
-                    
-                    "invisible" => {
-                        ctx.set_presence(None, OnlineStatus::Invisible, false);
-                    }
-                    
-                    "invis" => {
-                        ctx.set_presence(None, OnlineStatus::Invisible, false);
-                    }
-                    
-                    "dnd" => {
-                        ctx.set_presence(None, OnlineStatus::DoNotDisturb, false);
-                    }
-                    
-                    "idle" => {
-                        ctx.set_presence(None, OnlineStatus::Idle, false);
-                    }
-                    
-                    "reset" => {
-                        ctx.set_presence(None, OnlineStatus::Online, false);
-                    }
-                    
-                    _ => {
-                        ctx.set_presence(None, OnlineStatus::Online, false);
-                    }
-                }
-            }
-            None => {
-                ctx.set_presence(None, OnlineStatus::Online, false);
-            }
-        }
+    if ALLOWED_USER_IDS.contains(&message.author.id.0) {
+        ctx.set_presence(None, Status::from_str(args.get(0).unwrap()).unwrap_or(OnlineStatus::Online), false);
     }
 });
 
