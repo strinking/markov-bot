@@ -35,4 +35,3 @@ pub fn insert_message(connection: &PgConnection,
         .get_result(connection)
         .expect("Could not insert message")
 }
-

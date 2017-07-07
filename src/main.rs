@@ -85,24 +85,14 @@ fn main() {
                                  channel_id);
 
         let mut data = ctx.data.lock().unwrap();
-        match data.get_mut::<Markov>() {
-            Some(markov) => {
-                markov.parse(&stripped);
-            }
-            None => {
-                panic!("Markov does not exist.");
-            }
-        }
-
-        match data.get_mut::<UserMap>() {
-            Some(user_map) => {
-                let mut markov = user_map.entry(author.id.0).or_insert(Markov::new());
-                markov.parse(&stripped);
-            }
-            None => {
-                println!("UserMap does not exist.");
-            }
-        }
+        let mut new = ctx.data.lock().unwrap();
+        let mut markov = data.get_mut::<Markov>().expect("Markov does not exist");
+        let mut usermap = new.get_mut::<UserMap>().expect("UserMap does not exist");
+        markov.parse(&stripped);
+        usermap
+            .entry(author_id)
+            .or_insert(Markov::new())
+            .parse(&stripped);
     });
 
     if let Err(why) = client.start() {

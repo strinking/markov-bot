@@ -9,7 +9,7 @@ impl Status {
             "invisible" | "invis" => Ok(OnlineStatus::Invisible),
             "dnd" => Ok(OnlineStatus::DoNotDisturb),
             "idle" => Ok(OnlineStatus::Idle),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

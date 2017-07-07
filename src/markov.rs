@@ -4,11 +4,8 @@ use rand::{thread_rng, Rng};
 use std::hash::Hash;
 use typemap::Key;
 use regex::Regex;
-use diesel::SelectDsl;
-use diesel::LoadDsl;
 use schema::message::dsl::*;
-use diesel::ExpressionMethods;
-use diesel::FilterDsl;
+use diesel::{FilterDsl, LoadDsl, SelectDsl, ExpressionMethods};
 
 lazy_static! {
     static ref URL_REGEX: Regex = Regex::new(r"[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)").unwrap();
@@ -88,10 +85,7 @@ impl Markov {
                 *count += 1;
             }
 
-            None => {
-                println!("Empty message");
-                return;
-            }
+            None => return,
         }
 
         let mut next_word: String;
