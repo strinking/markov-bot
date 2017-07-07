@@ -40,6 +40,7 @@ fn main() {
                                data.get_mut::<Markov>().unwrap());
         markov::parse_user_messages(&connection.lock().unwrap(),
                                     data.get_mut::<UserMap>().unwrap());
+        println!("Bot is running.");
     }
 
     client.with_framework(|f| {
@@ -70,11 +71,11 @@ fn main() {
             return;
         }
 
-        let message_id = msg.id.0 as i64;
+        let message_id = msg.id.0;
         let message_content: String = String::from(msg.content_safe());
-        let guild_id = msg.guild_id().unwrap().0 as i64;
-        let author_id = author.id.0 as i64;
-        let channel_id = msg.channel_id.0 as i64;
+        let guild_id = msg.guild_id().unwrap().0;
+        let author_id = author.id.0;
+        let channel_id = msg.channel_id.0;
 
         database::insert_message(&connection.lock().unwrap(),
                                  message_id,
