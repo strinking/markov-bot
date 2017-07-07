@@ -14,20 +14,20 @@ pub fn connect() -> PgConnection {
 
 
 pub fn insert_message(connection: &PgConnection,
-                      id: i64,
+                      id: u64,
                       content: String,
-                      guild_id: i64,
-                      author_id: i64,
-                      channel_id: i64)
+                      guild_id: u64,
+                      author_id: u64,
+                      channel_id: u64)
                       -> Message {
     use schema::message;
 
     let new_message = Message {
-        id: id,
+        id: id as i64,
         content: content,
-        guild_id: guild_id,
-        author_id: author_id,
-        channel_id: channel_id,
+        guild_id: guild_id as i64,
+        author_id: author_id as i64,
+        channel_id: channel_id as i64,
     };
 
     insert(&new_message)
@@ -35,3 +35,4 @@ pub fn insert_message(connection: &PgConnection,
         .get_result(connection)
         .expect("Could not insert message")
 }
+
