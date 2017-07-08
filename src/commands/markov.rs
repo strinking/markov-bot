@@ -15,23 +15,19 @@ fn output_markov(markov: &Markov, message: &Message, length: u32, start: Option<
         Some(ref text) => text.as_str(),
         None => ERROR_MESSAGE,
     };
+    
     let _ = message.channel_id.say(msg);
 }
 
 command!(generate(ctx, message, args) {
     let mut data = ctx.data.lock().unwrap();
     let mut markov = data.get_mut::<Markov>().unwrap();
-    let mut length: u32 = 0;
-        match args.get(0) {
-            Some(a) => {
-                if let Ok(len) = a.parse::<u32>() {
-                    length += len;
-                }
-            },
-            None => {
-                length += DEFAULT_GENERATION_LENGTH;
-            }
-        }
+
+    let length = args.get(1)
+        .map_or(DEFAULT_GENERATION_LENGTH,
+                |x| x.parse::<u32>()
+                .ok()
+                .unwrap_or(DEFAULT_GENERATION_LENGTH));
     output_markov(&markov, &message, length, None);
 });
 

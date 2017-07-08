@@ -25,6 +25,7 @@ use markov::Markov;
 use serenity::Client;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 fn main() {
     let markov = Markov::new();
@@ -33,16 +34,33 @@ fn main() {
     let connection = Arc::new(Mutex::new(database::connect()));
     let mut client = Client::new(&token);
     {
-        let mut data = client.data.lock().unwrap();
-        data.insert::<Markov>(markov);
-        data.insert::<UserMap>(user_map);
-        markov::parse_messages(&connection.lock().unwrap(),
-                               data.get_mut::<Markov>().unwrap());
-        markov::parse_user_messages(&connection.lock().unwrap(),
-                                    data.get_mut::<UserMap>().unwrap());
+        {
+            let mut data = client.data.lock().unwrap();
+            data.insert::<Markov>(markov);
+            data.insert::<UserMap>(user_map);
+        }
+
+        let locked_data1 = client.data.clone();
+        let locked_data2 = client.data.clone();
+        let locked_connection1 = connection.clone();
+        let locked_connection2 = connection.clone();
+        
+        thread::spawn(move || {
+            let mut data = locked_data1.lock().unwrap();
+            let mut markov = data.get_mut::<Markov>().unwrap();
+            markov::parse_messages(&locked_connection1.lock().unwrap(), markov);
+            println!("Finished parsing global messages.");
+        });
+
+        thread::spawn(move || {
+            let mut data = locked_data2.lock().unwrap();
+            let mut markov = data.get_mut::<UserMap>().unwrap();
+            markov::parse_user_messages(&locked_connection2.lock().unwrap(), markov);
+            println!("Finished parsing user messages.");
+        });
+        
         println!("Bot is running.");
     }
-
     client.with_framework(|f| {
         f.configure(|c| {
                            c.prefix("%")
@@ -84,15 +102,19 @@ fn main() {
                                  author_id,
                                  channel_id);
 
-        let mut data = ctx.data.lock().unwrap();
-        let mut new = ctx.data.lock().unwrap();
-        let mut markov = data.get_mut::<Markov>().expect("Markov does not exist");
-        let mut usermap = new.get_mut::<UserMap>().expect("UserMap does not exist");
-        markov.parse(&stripped);
-        usermap
-            .entry(author_id)
-            .or_insert(Markov::new())
-            .parse(&stripped);
+        let mut data = ctx.data.lock().unwrap(); 
+        {
+            let mut markov = data.get_mut::<Markov>().expect("Markov does not exist");
+            markov.parse(&stripped);
+        }
+
+        {
+            let mut usermap = data.get_mut::<UserMap>().expect("UserMap does not exist"); 
+            usermap 
+                .entry(author_id) 
+                .or_insert(Markov::new()) 
+                .parse(&stripped); 
+        }
     });
 
     if let Err(why) = client.start() {
