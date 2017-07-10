@@ -11,12 +11,12 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_codegen;
 
+mod database;
 mod schema;
 mod message;
 mod commands;
 mod markov;
 mod usermap;
-mod database;
 mod status;
 
 use std::env;

@@ -27,7 +27,8 @@ command!(help(ctx, message, args) {
 
 command!(status(ctx, message, args) {
     if ALLOWED_USER_IDS.contains(&message.author.id.0) {
-        ctx.set_presence(None, Status::from_str(args.get(0).unwrap()).unwrap_or(OnlineStatus::Online), false);
+        let status = Status::from_str(args.get(0).unwrap()).unwrap_or(OnlineStatus::Online);
+        ctx.set_presence(None, status, false);
     }
 });
 
