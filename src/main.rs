@@ -40,25 +40,15 @@ fn main() {
             data.insert::<UserMap>(user_map);
         }
 
-        let locked_data1 = client.data.clone();
-        let locked_data2 = client.data.clone();
-        let locked_connection1 = connection.clone();
-        let locked_connection2 = connection.clone();
-        
-        thread::spawn(move || {
-            let mut data = locked_data1.lock().unwrap();
-            let mut markov = data.get_mut::<Markov>().unwrap();
-            markov::parse_messages(&locked_connection1.lock().unwrap(), markov);
-            println!("Finished parsing global messages.");
-        });
+        let locked_data = client.data.clone();
+        let locked_connection = connection.clone();
 
         thread::spawn(move || {
-            let mut data = locked_data2.lock().unwrap();
-            let mut markov = data.get_mut::<UserMap>().unwrap();
-            markov::parse_user_messages(&locked_connection2.lock().unwrap(), markov);
-            println!("Finished parsing user messages.");
-        });
-        
+                          let mut data = locked_data.lock().unwrap();
+                          let mut markov = data.get_mut::<Markov>().unwrap();
+                          markov::parse_messages(&locked_connection.lock().unwrap(), markov);
+                          println!("Finished parsing global messages.");
+                      });
         println!("Bot is running.");
     }
     client.with_framework(|f| {
@@ -102,18 +92,20 @@ fn main() {
                                  author_id,
                                  channel_id);
 
-        let mut data = ctx.data.lock().unwrap(); 
+        let mut data = ctx.data.lock().unwrap();
         {
             let mut markov = data.get_mut::<Markov>().expect("Markov does not exist");
             markov.parse(&stripped);
         }
 
         {
-            let mut usermap = data.get_mut::<UserMap>().expect("UserMap does not exist"); 
-            usermap 
-                .entry(author_id) 
-                .or_insert(Markov::new()) 
-                .parse(&stripped); 
+            let mut usermap = data.get_mut::<UserMap>().expect("UserMap does not exist");
+            let markov = usermap
+                .entry(author_id)
+                .or_insert(Markov::new());
+            
+            markov::parse_user_messages(&connection.lock().unwrap(), markov, author_id);
+            markov.parse(&stripped);
         }
     });
 

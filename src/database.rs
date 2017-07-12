@@ -33,5 +33,5 @@ pub fn insert_message(connection: &PgConnection,
     insert(&new_message)
         .into(message::table)
         .get_result(connection)
-        .expect("Could not insert message")
+        .unwrap_or_else(|e| { println!("could not insert message: {}", e); new_message })
 }

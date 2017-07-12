@@ -27,35 +27,6 @@ fn roulette_wheel<'a, T: Eq + Hash>(map: &'a HashMap<T, u32>, rng: &mut Rng) -> 
     None
 }
 
-pub fn parse_messages(connection: &PgConnection, markov: &mut Markov) {
-    let results = message.select(content).load::<String>(connection);
-
-    for vector in results {
-        for message_content in vector {
-            markov.parse(message_content.as_str());
-        }
-    }
-}
-
-pub fn parse_user_messages(connection: &PgConnection, mut markov: &mut HashMap<u64, Markov>) {
-    let results = message.select(author_id).load::<i64>(connection);
-
-    for vector in results {
-        for user_id in vector {
-            let markov = markov.entry(user_id as u64).or_insert(Markov::new());
-            let messages = message
-                .select(content)
-                .filter(author_id.eq(user_id))
-                .load::<String>(connection);
-            for vec in messages {
-                for msg in vec {
-                    markov.parse(msg.as_str());
-                }
-            }
-        }
-    }
-}
-
 pub struct Markov {
     assoc_map: HashMap<String, HashMap<String, u32>>,
     starting_words: HashMap<String, u32>,
@@ -118,41 +89,10 @@ impl Markov {
 
     pub fn generate(&self, length: u32) -> Option<String> {
         let mut rng = thread_rng();
-        let mut word: &String;
-
-        match roulette_wheel(&self.starting_words, &mut rng) {
-            Some(start) => {
-                word = start;
-            }
-
-            None => {
-                return None;
-            }
-        }
-
-        let mut result = String::new();
-
-        for _ in 0..length {
-            match self.assoc_map.get(word) {
-                Some(probs) => {
-                    if !result.is_empty() {
-                        result.push(' ');
-                    }
-                    result.push_str(&*word);
-
-                    word = roulette_wheel(&probs, &mut rng).expect("Probability map is empty");
-
-                    if word.is_empty() {
-                        break;
-                    }
-                }
-
-                None => {
-                    break;
-                }
-            }
-        }
-        Some(result)
+        let result = roulette_wheel(&self.starting_words, &mut rng)
+            .map_or(None,
+                    |x| self.generate_from_word(length, x));
+        result
     }
 
     pub fn generate_from_word(&self, length: u32, starting_word: &str) -> Option<String> {
@@ -181,5 +121,26 @@ impl Markov {
             }
         }
         Some(result)
+    }
+}
+
+
+pub fn parse_messages(connection: &PgConnection, markov: &mut Markov) {
+    let results = message.select(content).load::<String>(connection);
+
+    for vector in results {
+        for message_content in vector {
+            markov.parse(message_content.as_str());
+        }
+    }
+}
+
+pub fn parse_user_messages(connection: &PgConnection, mut markov: &mut Markov, user_id: u64) {
+    let results = message.select(content).filter(author_id.eq(user_id as i64)).load::<String>(connection);
+                                                
+    for vector in results {
+        for msg in vector {
+            markov.parse(msg.as_str());
+        }
     }
 }
